@@ -2,6 +2,6 @@
 
 ## Introduction
 
-I'm CN059,a college student from China.Today,I suddenly want to crate a repository to learn programming.
+I'm CN059,a college student from China.Today,I suddenly wanted to create a repository to learn programming.
 
-I will creat many branches to study many different techonlogy.Let's go!
+I will create many branches to study many different technologies.Let's go!
