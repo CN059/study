@@ -50,9 +50,6 @@ fn test_datastore_error(){
     print!("err4: {:?}", err4);
 } */
 
-use core::error;
-
-
 // std::error::Error
 // 使用派生宏实现Debug,可以用{:?}打印
 // Debug是一个标准库中的 trait，定义在 std::fmt 模块中。它的作用是为类型提供调试信息的格式化输出。
@@ -192,7 +189,7 @@ pub fn first_char(s: &str) -> char {
     s.chars().next().unwrap_or_default()
 }
 #[derive(thiserror::Error, std::fmt::Debug)]
-enum ExampleErrors{
+pub enum ExampleErrors{
     // 这些简写形式可以与任何其他格式参数一起使用，这些参数可以是任意表达式。
     #[error("invalid rdo_lookahead_frames {0} (expected < {max})", max = i32::MAX)]
     InvalidLookahead(u32),
