@@ -50,6 +50,8 @@ fn test_datastore_error(){
     print!("err4: {:?}", err4);
 } */
 
+use core::error;
+
 
 // std::error::Error
 // 使用派生宏实现Debug,可以用{:?}打印
@@ -115,18 +117,105 @@ fn test_std_display_trait(){
 // 为标准库提供了一个方便的派生宏 std::error::Error trait。可以用于快速自定义错误类型
 #[derive(thiserror::Error, std::fmt::Debug)]
 pub enum DataStoreError {
+    // 枚举变量内部携带一些其他类型的数据，是代数数据类型（ADTs）
+    // 这种特性允许你在枚举的每个变体中存储不同类型的数据，从而使枚举不仅仅是简单的标签，还能携带额外的信息。
+    /* 
+        在 Rust 中，枚举的每个变体可以是以下三种形式：
+        1、单元变体：不携带任何数据。
+        2、元组变体：携带一个或多个未命名的数据。
+        3、结构体变体：携带一个或多个命名的数据。
+    */
     #[error("data store disconnected")]
     Disconnect(#[from] std::io::Error),
+    // 通过 #[from] 属性宏，可以自动实现 From trait，这样就可以直接使用 std::io::Error 转换为 DataStoreError
 
+    // 这里的Redaction变体携带一个 String 类型的数据，{0} 是一个占位符，用于在错误消息中插入该数据。
     #[error("the data for key `{0}` is not available")]
     Redaction(String),
 
+    // 用于表示复杂的错误，字段名称可以提高代码的可读性。
     #[error("invalid header (expected {expected:?}, found {found:?})")]
     InvalidHeader {
         expected: String,
         found: String,
     },
 
+    // #[error("{var}")] ⟶ write!("{}", self.var)
+    // #[error("{0}")] ⟶ write!("{}", self.0)
+    // #[error("{var:?}")] ⟶ write!("{:?}", self.var)
+    // #[error("{0:?}")] ⟶ write!("{:?}", self.0)
     #[error("unknown data store error")]
     Unknown,
+}
+/* 
+```
+fn handle_error(error: DataStoreError) {
+        match error {
+        // 枚举变体里面携带的额外参数在match匹配时就很有用处
+            DataStoreError::Disconnect(io_err) => {
+                println!("I/O error: {}", io_err);
+            }
+            DataStoreError::Redaction(key) => {
+                println!("Key redacted: {}", key);
+            }
+            DataStoreError::InvalidHeader { expected, found } => {
+                println!("Invalid header: expected {}, found {}", expected, found);
+            }
+            DataStoreError::Unknown => {
+                println!("Unknown error");
+            }
+        }
+    }
+``` 
+*/
+
+
+#[test]
+fn test_datastore_error(){
+    println!("{}",DataStoreError::Disconnect(std::io::Error::new(std::io::ErrorKind::Other, "connection lost")));
+    println!("{}",DataStoreError::Redaction("user_password".to_string()));
+    println!("{}",DataStoreError::InvalidHeader {
+        expected: "v1".to_string(),
+        found: "v2".to_string(),
+    });
+    println!("{}",DataStoreError::Unknown);
+}
+
+#[derive(Debug)]
+pub struct Limits {
+    #[allow(dead_code)]
+    lo: usize,
+    #[allow(dead_code)]
+    hi: usize,
+}
+pub fn first_char(s: &str) -> char {
+    s.chars().next().unwrap_or_default()
+}
+#[derive(thiserror::Error, std::fmt::Debug)]
+enum ExampleErrors{
+    // 这些简写形式可以与任何其他格式参数一起使用，这些参数可以是任意表达式。
+    #[error("invalid rdo_lookahead_frames {0} (expected < {max})", max = i32::MAX)]
+    InvalidLookahead(u32),
+    #[error("first letter must be lowercase but was {:?}", first_char(.0))]
+    WrongCase(String),
+
+    // 一般来讲，如果要使用到结构体字段里面的结构体实例的成员，那么访问这个实例，前面要加点，就像上面的.0一样
+    // 不过有一个省略规则，我们可以省略前面的点，就像limits.hi一样
+    #[error("invalid index {idx}, expected at least {} and at most {}", .limits.lo, limits.hi)]
+    OutOfBounds { idx: usize, limits: Limits },
+
+    // 这里的#[from]属性宏可以自动实现 From trait，这样就可以直接使用 std::io::Error 转换为 ExampleErrors::Io
+    // 当我们在某个函数中使用？运算符的时候，如果错误类型是std::io::Error，那么它就会自动转换为Io错误类型
+    #[error("I/O error: {0}")]
+    Io(#[from] std::io::Error),
+    // #[from] 属性始终意味着同一个字段也是 #[source] ，因此您永远不需要同时指定这两个属性。
+    // 任何实现了 std::error::Error 或对 dyn std::error::Error 进行解引用的错误类型都可以作为错误源。
+}
+#[test]
+fn test_example_errors(){
+    let limit=Limits { lo: 0, hi: 5 };
+    println!("{}",ExampleErrors::InvalidLookahead(5000));
+    println!("{}",ExampleErrors::WrongCase("Hello".to_string()));
+    println!("{}",ExampleErrors::OutOfBounds { idx: 10, limits: limit});
+    println!("{}的首字母是{}", ExampleErrors::WrongCase("Hello".to_string()), first_char("Hello"));
 }
