@@ -3,6 +3,7 @@ pub fn add(left: u64, right: u64) -> u64 {
 }
 pub mod l_anyhow;
 pub mod l_thiserror;
+pub mod l_validator;
 #[cfg(test)]
 mod tests {
     use super::*;
